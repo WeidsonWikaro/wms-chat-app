@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { formatMessageTimeLabel } from "@/lib/chat/format-message-time";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
 
@@ -29,6 +30,19 @@ export function MessageBubble({
   const displayName =
     message.authorName ?? (isUser ? "Você" : "Assistente WMS");
   const initials = getInitials(displayName);
+
+  const shouldShowTime =
+    (isUser && message.sentAtIso !== undefined) ||
+    (!isUser &&
+      (message.sentAtIso !== undefined ||
+        (message.role === "assistant" && message.content.length > 0)));
+  const timeLabel = shouldShowTime
+    ? formatMessageTimeLabel(message.sentAtIso, message.createdAt)
+    : "";
+  const timeIso =
+    message.sentAtIso !== undefined
+      ? message.sentAtIso
+      : new Date(message.createdAt).toISOString();
 
   return (
     <div
@@ -83,6 +97,17 @@ export function MessageBubble({
             ) : null}
           </p>
         </div>
+        {timeLabel.length > 0 ? (
+          <time
+            className={cn(
+              "px-1 text-[0.65rem] tabular-nums text-zinc-500",
+              isUser ? "text-right" : "text-left"
+            )}
+            dateTime={timeIso}
+          >
+            {timeLabel}
+          </time>
+        ) : null}
       </div>
     </div>
   );

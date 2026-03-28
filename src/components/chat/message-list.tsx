@@ -5,16 +5,20 @@ import { useEffect, useRef } from "react";
 
 import type { ChatMessage } from "@/types/chat";
 
+import { ChatTypingIndicator } from "@/components/chat/chat-typing-indicator";
 import { MessageBubble } from "@/components/chat/message-bubble";
 
 export interface MessageListProps {
   readonly messages: readonly ChatMessage[];
   readonly isStreaming: boolean;
+  /** Enquanto a API de saúde responde ou antes da mensagem inicial aparecer. */
+  readonly showConnectionLoading?: boolean;
 }
 
 export function MessageList({
   messages,
   isStreaming,
+  showConnectionLoading = false,
 }: MessageListProps): ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -24,7 +28,20 @@ export function MessageList({
       return;
     }
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [messages, showConnectionLoading]);
+
+  if (showConnectionLoading) {
+    return (
+      <div
+        ref={scrollRef}
+        className="chat-pattern flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-4"
+        role="status"
+        aria-busy="true"
+      >
+        <ChatTypingIndicator />
+      </div>
+    );
+  }
 
   return (
     <div

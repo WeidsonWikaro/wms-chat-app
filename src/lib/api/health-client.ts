@@ -1,4 +1,4 @@
-import { fetchJson } from "@/lib/api/http";
+import { apiClient } from "@/lib/api/axios-instance";
 
 export interface HealthResponse {
   readonly status: string;
@@ -7,5 +7,6 @@ export interface HealthResponse {
 }
 
 export async function fetchHealth(): Promise<HealthResponse> {
-  return fetchJson<HealthResponse>("/health");
+  const { data } = await apiClient.get<HealthResponse>("/health");
+  return data;
 }

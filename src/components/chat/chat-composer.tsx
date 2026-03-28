@@ -9,33 +9,43 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 export interface ChatComposerProps {
+  /** Sem ligação / token: desativa o campo e o envio. */
   readonly disabled: boolean;
+  /**
+   * Resposta em curso: não envia outra mensagem, mas o campo continua ativo
+   * para não perder o foco (evita `disabled` no textarea durante o stream).
+   */
+  readonly blockOutgoing?: boolean;
   readonly onSend: (text: string) => Promise<void>;
 }
 
 export function ChatComposer({
   disabled,
+  blockOutgoing = false,
   onSend,
 }: ChatComposerProps): ReactElement {
   const [value, setValue] = useState("");
 
   const handleSubmit = useCallback(async () => {
     const text = value.trim();
-    if (text.length === 0 || disabled) {
+    if (text.length === 0 || disabled || blockOutgoing) {
       return;
     }
     setValue("");
     await onSend(text);
-  }, [disabled, onSend, value]);
+  }, [blockOutgoing, disabled, onSend, value]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
+        if (disabled || blockOutgoing) {
+          return;
+        }
         void handleSubmit();
       }
     },
-    [handleSubmit]
+    [blockOutgoing, disabled, handleSubmit]
   );
 
   return (
@@ -59,7 +69,7 @@ export function ChatComposer({
         <Button
           type="button"
           onClick={() => void handleSubmit()}
-          disabled={disabled || value.trim().length === 0}
+          disabled={disabled || blockOutgoing || value.trim().length === 0}
           className="h-11 shrink-0 gap-2 bg-emerald-700 px-5 text-white hover:bg-emerald-800 sm:h-[3.25rem] sm:min-w-[5.5rem]"
           aria-label="Enviar mensagem"
         >
