@@ -3,6 +3,8 @@
 import type { KeyboardEvent, ReactElement } from "react";
 import { useCallback, useState } from "react";
 
+import { Send } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -39,7 +41,7 @@ export function ChatComposer({
   return (
     <div className="flex w-full flex-col gap-2">
       <label className="sr-only" htmlFor="chat-message-input">
-        Message
+        Mensagem
       </label>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <Textarea
@@ -48,19 +50,21 @@ export function ChatComposer({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Write a message… (Enter to send, Shift+Enter for newline)"
+          placeholder="Mensagem"
           disabled={disabled}
           rows={2}
-          className="min-h-[4.5rem] flex-1 resize-none"
-          aria-label="Chat message input"
+          className="min-h-[3.25rem] flex-1 resize-none border-zinc-200 bg-white focus-visible:ring-emerald-600/30"
+          aria-label="Campo de mensagem do chat"
         />
         <Button
           type="button"
           onClick={() => void handleSubmit()}
           disabled={disabled || value.trim().length === 0}
-          className="shrink-0 sm:h-[4.5rem] sm:min-w-[6rem]"
+          className="h-11 shrink-0 gap-2 bg-emerald-700 px-5 text-white hover:bg-emerald-800 sm:h-[3.25rem] sm:min-w-[5.5rem]"
+          aria-label="Enviar mensagem"
         >
-          Send
+          <Send className="size-4" aria-hidden />
+          Enviar
         </Button>
       </div>
     </div>

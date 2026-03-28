@@ -13,6 +13,15 @@ function createMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
+const INITIAL_ASSISTANT_MESSAGE: ChatMessage = {
+  id: "msg-assistente-wms-inicial",
+  role: "assistant",
+  content: "Olá! O que deseja?",
+  createdAt: Date.now(),
+  status: "complete",
+  authorName: "Assistente WMS",
+};
+
 export interface UseChatOptions {
   readonly transport?: IChatTransport;
 }
@@ -30,7 +39,9 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
     () => options.transport ?? new MockChatTransport(),
     [options.transport]
   );
-  const [messages, setMessages] = useState<readonly ChatMessage[]>([]);
+  const [messages, setMessages] = useState<readonly ChatMessage[]>([
+    INITIAL_ASSISTANT_MESSAGE,
+  ]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +62,7 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
         content: trimmed,
         createdAt: Date.now(),
         status: "complete",
+        authorName: "Você",
       };
       const assistantId = createMessageId();
       const assistantShell: ChatMessage = {
@@ -59,6 +71,7 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
         content: "",
         createdAt: Date.now(),
         status: "streaming",
+        authorName: "Assistente WMS",
       };
       setMessages((prev) => [...prev, userMessage, assistantShell]);
       setIsStreaming(true);

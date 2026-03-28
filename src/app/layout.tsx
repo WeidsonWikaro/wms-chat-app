@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chat — AI streaming UI",
+  title: "Chat — Assistente WMS",
   description:
-    "Next.js chat interface prepared for streaming AI backends (SSE, WebSocket, or fetch streams).",
+    "Conversa com o Assistente WMS para o seu armazém e operações.",
 };
 
 export default function RootLayout({
@@ -25,10 +25,12 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="pt-BR"
+      className={`${geistSans.variable} ${geistMono.variable} h-dvh overflow-hidden antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="m-0 box-border flex h-dvh min-h-0 flex-col overflow-hidden bg-zinc-950 p-0 text-foreground">
+        {children}
+      </body>
     </html>
   );
 }

@@ -8,4 +8,6 @@ export interface ChatMessage {
   readonly content: string;
   readonly createdAt: number;
   readonly status?: MessageStatus;
+  /** Nome exibido acima da bolha (ex.: contato ou “Você”). */
+  readonly authorName?: string;
 }

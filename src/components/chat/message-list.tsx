@@ -26,41 +26,39 @@ export function MessageList({
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  if (messages.length === 0) {
-    return (
-      <div
-        className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/80 bg-muted/20 px-6 py-12 text-center text-sm text-muted-foreground"
-        role="status"
-      >
-        <p className="font-medium text-foreground">Start a conversation</p>
-        <p>Type a message below. Responses stream in using the mock transport.</p>
-      </div>
-    );
-  }
-
   return (
     <div
       ref={scrollRef}
-      className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto rounded-lg border border-border/50 bg-background/60 p-4"
+      className="chat-pattern flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-4"
       role="log"
       aria-live="polite"
       aria-relevant="additions"
     >
-      {messages.map((message, index) => {
-        const isLast = index === messages.length - 1;
-        const showCursor =
-          message.role === "assistant" &&
-          message.status === "streaming" &&
-          isStreaming &&
-          isLast;
-        return (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            showStreamingCursor={showCursor}
-          />
-        );
-      })}
+      {messages.length === 0 ? (
+        <div
+          className="flex min-h-full flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center text-sm text-zinc-600"
+          role="status"
+        >
+          <p className="font-medium text-zinc-800">Nenhuma mensagem ainda</p>
+          <p>Escreva abaixo para começar a conversa.</p>
+        </div>
+      ) : (
+        messages.map((message, index) => {
+          const isLast = index === messages.length - 1;
+          const showCursor =
+            message.role === "assistant" &&
+            message.status === "streaming" &&
+            isStreaming &&
+            isLast;
+          return (
+            <MessageBubble
+              key={message.id}
+              message={message}
+              showStreamingCursor={showCursor}
+            />
+          );
+        })
+      )}
     </div>
   );
 }
