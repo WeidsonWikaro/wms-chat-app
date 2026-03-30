@@ -2,6 +2,20 @@ import type { ReactElement } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+/** Três pontos com animação de salto (reutilizável na bolha do assistente “pensando”). */
+export function AssistantThinkingDots(): ReactElement {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 py-0.5 align-middle"
+      aria-hidden
+    >
+      <span className="chat-dot" />
+      <span className="chat-dot animation-delay-200" />
+      <span className="chat-dot animation-delay-400" />
+    </span>
+  );
+}
+
 /**
  * Balão estilo assistente com reticências animadas (estado de carregamento / digitação).
  */
@@ -23,11 +37,7 @@ export function ChatTypingIndicator(): ReactElement {
           Assistente WMS
         </span>
         <div className="rounded-2xl rounded-bl-sm bg-white px-4 py-3 text-sm text-zinc-700 ring-1 ring-black/5 shadow-sm">
-          <span className="inline-flex items-center gap-1 font-medium tracking-tight">
-            <span className="chat-dot" />
-            <span className="chat-dot animation-delay-200" />
-            <span className="chat-dot animation-delay-400" />
-          </span>
+          <AssistantThinkingDots />
         </div>
       </div>
     </div>

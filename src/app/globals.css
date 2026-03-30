@@ -138,30 +138,30 @@
 
 .chat-dot {
   display: inline-block;
-  height: 0.45rem;
-  width: 0.45rem;
+  height: 0.5rem;
+  width: 0.5rem;
   border-radius: 9999px;
   background-color: rgb(63 63 70);
-  animation: chat-dot-bounce 1.05s ease-in-out infinite;
+  animation: chat-dot-bounce 0.9s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animation-delay-200 {
-  animation-delay: 0.2s;
+  animation-delay: 0.15s;
 }
 
 .animation-delay-400 {
-  animation-delay: 0.4s;
+  animation-delay: 0.3s;
 }
 
 @keyframes chat-dot-bounce {
   0%,
-  80%,
   100% {
     transform: translateY(0);
-    opacity: 0.35;
+    opacity: 0.4;
   }
-  40% {
-    transform: translateY(-0.35rem);
+  50% {
+    transform: translateY(-0.45rem);
     opacity: 1;
   }
 }

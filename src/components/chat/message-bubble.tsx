@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 
+import { AssistantThinkingDots } from "@/components/chat/chat-typing-indicator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatMessageTimeLabel } from "@/lib/chat/format-message-time";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,13 @@ export function MessageBubble({
       ? message.sentAtIso
       : new Date(message.createdAt).toISOString();
 
+  const isAssistantThinking =
+    !isUser &&
+    message.status === "streaming" &&
+    message.content.length === 0;
+  const showEndCursor =
+    showStreamingCursor && message.content.length > 0;
+
   return (
     <div
       className={cn(
@@ -87,15 +95,22 @@ export function MessageBubble({
           )}
         >
           <span className="sr-only">{displayName}</span>
-          <p className="whitespace-pre-wrap break-words">
-            {message.content}
-            {showStreamingCursor ? (
-              <span
-                className="ml-0.5 inline-block h-4 w-0.5 animate-pulse rounded-sm bg-current align-middle"
-                aria-hidden
-              />
-            ) : null}
-          </p>
+          {isAssistantThinking ? (
+            <p className="min-h-[1.25rem]">
+              <span className="sr-only">Assistente está respondendo</span>
+              <AssistantThinkingDots />
+            </p>
+          ) : (
+            <p className="whitespace-pre-wrap break-words">
+              {message.content}
+              {showEndCursor ? (
+                <span
+                  className="ml-0.5 inline-block h-4 w-0.5 animate-pulse rounded-sm bg-current align-middle"
+                  aria-hidden
+                />
+              ) : null}
+            </p>
+          )}
         </div>
         {timeLabel.length > 0 ? (
           <time
