@@ -10,6 +10,10 @@ import {
 } from "react";
 
 import {
+  appendAssistantChunk,
+  markAssistantComplete,
+} from "@/lib/chat/chat-stream-utils";
+import {
   CHAT_EVENT_CHUNK,
   CHAT_EVENT_COMPLETE,
   CHAT_EVENT_ERROR,
@@ -24,7 +28,6 @@ import {
   type ChatSendPayload,
   type ChatSessionPayload,
   type ChatSocketHandlers,
-  pendingAssistantMessageId,
 } from "@/lib/socket/chat-protocol";
 import type { ChatMessage } from "@/types/chat";
 
@@ -106,7 +109,9 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
     lastSocketRef.current = socket;
     if (isNewSocketInstance) {
       resetConversationForNewSocketSession();
-      setMessages([]);
+      queueMicrotask(() => {
+        setMessages([]);
+      });
     }
 
     const handleSession = (payload: ChatSessionPayload): void => {
@@ -154,89 +159,16 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
     };
 
     const handleChunk = (payload: ChatChunkPayload): void => {
-      const clientId = activeClientMessageIdRef.current;
-      const pendingId =
-        clientId !== null ? pendingAssistantMessageId(clientId) : null;
-
-      setMessages((prev) => {
-        const next = [...prev];
-        let idx = next.findIndex((m) => m.id === payload.assistantMessageId);
-        if (idx === -1 && pendingId !== null) {
-          idx = next.findIndex((m) => m.id === pendingId);
-        }
-        if (idx === -1 && clientId === null) {
-          const serverInit: ChatMessage = {
-            id: payload.assistantMessageId,
-            role: "assistant",
-            content: payload.chunk,
-            createdAt: createdAtFromOptionalSentAt(payload.sentAt),
-            sentAtIso: payload.sentAt,
-            status: "streaming",
-            authorName: "Assistente WMS",
-          };
-          return [...prev, serverInit];
-        }
-        if (idx === -1) {
-          return prev;
-        }
-        const current = next[idx];
-        if (!current || current.role !== "assistant") {
-          return prev;
-        }
-        const isFirstChunk = current.id !== payload.assistantMessageId;
-        const nextContent = isFirstChunk
-          ? payload.chunk
-          : current.content + payload.chunk;
-        next[idx] = {
-          ...current,
-          id: payload.assistantMessageId,
-          content: nextContent,
-          status: "streaming",
-          sentAtIso: current.sentAtIso ?? payload.sentAt,
-        };
-        return next;
-      });
+      const cid = payload.conversationId;
+      if (typeof cid === "string" && cid.length > 0) {
+        conversationIdRef.current = cid;
+        setConversationId((prev) => (prev === cid ? prev : cid));
+      }
+      setMessages((prev) => appendAssistantChunk(prev, payload));
     };
 
     const handleComplete = (payload: ChatCompletePayload): void => {
-      setMessages((prev) => {
-        const next = [...prev];
-        let idx = next.findIndex((m) => m.id === payload.assistantMessageId);
-        if (idx === -1) {
-          const cid = activeClientMessageIdRef.current;
-          if (cid !== null) {
-            idx = next.findIndex(
-              (m) => m.id === pendingAssistantMessageId(cid)
-            );
-          }
-        }
-        if (idx === -1 && activeClientMessageIdRef.current === null) {
-          const serverOnly: ChatMessage = {
-            id: payload.assistantMessageId,
-            role: "assistant",
-            content: "",
-            createdAt: createdAtFromOptionalSentAt(payload.sentAt),
-            sentAtIso: payload.sentAt,
-            status: "complete",
-            authorName: "Assistente WMS",
-          };
-          return [...prev, serverOnly];
-        }
-        if (idx === -1) {
-          return prev;
-        }
-        const current = next[idx];
-        if (!current) {
-          return prev;
-        }
-        next[idx] = {
-          ...current,
-          id: payload.assistantMessageId,
-          status: "complete",
-          sentAtIso: payload.sentAt ?? current.sentAtIso,
-        };
-        return next;
-      });
+      setMessages((prev) => markAssistantComplete(prev, payload));
       setIsStreaming(false);
       activeClientMessageIdRef.current = null;
     };
@@ -245,23 +177,14 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
       setError(payload.message);
       setIsStreaming(false);
       activeClientMessageIdRef.current = null;
-      setMessages((prev) => {
-        if (payload.clientMessageId) {
-          const pid = pendingAssistantMessageId(payload.clientMessageId);
-          return prev.map((m) => {
-            if (m.id === pid) {
-              return { ...m, status: "error" as const };
-            }
-            return m;
-          });
-        }
-        return prev.map((m) => {
+      setMessages((prev) =>
+        prev.map((m) => {
           if (m.role === "assistant" && m.status === "streaming") {
             return { ...m, status: "error" as const };
           }
           return m;
-        });
-      });
+        })
+      );
     };
 
     const handleDisconnect = (): void => {
@@ -342,18 +265,8 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
         authorName: "Você",
       };
 
-      const pendingId = pendingAssistantMessageId(userMessage.id);
-      const assistantShell: ChatMessage = {
-        id: pendingId,
-        role: "assistant",
-        content: "",
-        createdAt: Date.now(),
-        status: "streaming",
-        authorName: "Assistente WMS",
-      };
-
       activeClientMessageIdRef.current = userMessage.id;
-      setMessages((prev) => [...prev, userMessage, assistantShell]);
+      setMessages((prev) => [...prev, userMessage]);
       setIsStreaming(true);
 
       const convId = conversationIdRef.current;

@@ -3,6 +3,7 @@ import type { InternalAxiosRequestConfig } from "axios";
 import { apiClient } from "@/lib/api/axios-instance";
 import { refreshAccessTokenRequest } from "@/lib/auth/auth-api";
 import { getAuthAccessTokenSync } from "@/lib/auth/auth-access";
+import { redirectToLoginIfNeeded } from "@/lib/auth/auth-navigation";
 import { useAuthStore } from "@/lib/auth/auth-store";
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
@@ -39,6 +40,7 @@ export function setupApiAuthInterceptors(): void {
       if (
         url.includes("auth/login") ||
         url.includes("auth/refresh") ||
+        url.includes("auth/logout") ||
         url.includes("/chat/dev-token")
       ) {
         return Promise.reject(error);
@@ -46,6 +48,7 @@ export function setupApiAuthInterceptors(): void {
       const refreshToken = useAuthStore.getState().refreshToken;
       if (!refreshToken) {
         useAuthStore.getState().clearSession();
+        redirectToLoginIfNeeded();
         return Promise.reject(error);
       }
       config._retry = true;
@@ -59,6 +62,7 @@ export function setupApiAuthInterceptors(): void {
         return apiClient(config);
       } catch {
         useAuthStore.getState().clearSession();
+        redirectToLoginIfNeeded();
         return Promise.reject(error);
       }
     }

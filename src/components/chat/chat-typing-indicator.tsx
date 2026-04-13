@@ -16,16 +16,29 @@ export function AssistantThinkingDots(): ReactElement {
   );
 }
 
+export type ChatTypingIndicatorVariant = "connecting" | "responding";
+
+export interface ChatTypingIndicatorProps {
+  /** `connecting` — health/gateway; `responding` — à espera do primeiro `chat:chunk`. */
+  readonly variant?: ChatTypingIndicatorVariant;
+}
+
 /**
  * Balão estilo assistente com reticências animadas (estado de carregamento / digitação).
  */
-export function ChatTypingIndicator(): ReactElement {
+export function ChatTypingIndicator({
+  variant = "connecting",
+}: ChatTypingIndicatorProps): ReactElement {
+  const ariaLabel =
+    variant === "responding"
+      ? "O assistente está respondendo"
+      : "Conectando ao servidor";
   return (
     <div
       className="flex w-full gap-2 flex-row"
       role="status"
       aria-live="polite"
-      aria-label="Conectando ao servidor"
+      aria-label={ariaLabel}
     >
       <Avatar size="sm" className="mt-auto shrink-0" aria-hidden>
         <AvatarFallback className="bg-teal-700 text-[0.65rem] font-semibold text-white">

@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api/axios-instance";
+import type { LoginRequest } from "@/types/auth";
 
 function getLoginPath(): string {
   return process.env.NEXT_PUBLIC_AUTH_LOGIN_PATH ?? "/auth/login";
@@ -8,9 +9,8 @@ function getRefreshPath(): string {
   return process.env.NEXT_PUBLIC_AUTH_REFRESH_PATH ?? "/auth/refresh";
 }
 
-export interface LoginRequestBody {
-  readonly email: string;
-  readonly password: string;
+function getLogoutPath(): string {
+  return process.env.NEXT_PUBLIC_AUTH_LOGOUT_PATH ?? "/auth/logout";
 }
 
 export interface NormalizedTokens {
@@ -40,7 +40,7 @@ function normalizeTokenResponse(data: unknown): NormalizedTokens | null {
 }
 
 export async function loginRequest(
-  body: LoginRequestBody
+  body: LoginRequest
 ): Promise<NormalizedTokens> {
   const { data } = await apiClient.post<unknown>(getLoginPath(), body);
   const tokens = normalizeTokenResponse(data);
@@ -55,11 +55,14 @@ export async function refreshAccessTokenRequest(
 ): Promise<NormalizedTokens> {
   const { data } = await apiClient.post<unknown>(getRefreshPath(), {
     refreshToken,
-    refresh_token: refreshToken,
   });
   const tokens = normalizeTokenResponse(data);
   if (!tokens) {
     throw new Error("Resposta de refresh inválida.");
   }
   return tokens;
+}
+
+export async function logoutRequest(refreshToken: string): Promise<void> {
+  await apiClient.post(getLogoutPath(), { refreshToken });
 }

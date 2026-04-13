@@ -12,6 +12,9 @@ import {
   useState,
 } from "react";
 
+import { redirectToLoginIfNeeded } from "@/lib/auth/auth-navigation";
+import { recoverSessionWithRefresh } from "@/lib/auth/recover-session-with-refresh";
+import { useAuthStore } from "@/lib/auth/auth-store";
 import {
   CHAT_EVENT_CHUNK,
   CHAT_EVENT_COMPLETE,
@@ -30,7 +33,6 @@ import {
 import { resolveChatAuthToken } from "@/lib/socket/resolve-chat-auth-token";
 import { getSocketIoTransports } from "@/lib/socket/socket-io-options";
 import { getWsBaseUrl } from "@/lib/socket/ws-config";
-import { useAuthStore } from "@/lib/auth/auth-store";
 
 export type ChatSocketConnectionStatus =
   | "idle"
@@ -82,6 +84,9 @@ export function ChatSocketProvider({
   const pendingCompleteRef = useRef<ChatCompletePayload[]>([]);
   const pendingErrorRef = useRef<ChatErrorPayload[]>([]);
 
+  const connectionGenerationRef = useRef(0);
+  const socketAuthRecoveryInFlightRef = useRef(false);
+
   const subscribeChatHandlers = useCallback(
     (handlers: ChatSocketHandlers): (() => void) => {
       chatHandlersRef.current = handlers;
@@ -125,7 +130,6 @@ export function ChatSocketProvider({
 
   useEffect(() => {
     if (!enabled) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset ao desativar gateway
       disconnectSocket();
       chatHandlersRef.current = null;
       pendingSessionRef.current = [];
@@ -139,6 +143,10 @@ export function ChatSocketProvider({
       setTokenError(null);
       return;
     }
+
+    const generation = ++connectionGenerationRef.current;
+    const isCurrentGeneration = (): boolean =>
+      connectionGenerationRef.current === generation;
 
     let cancelled = false;
     pendingSessionRef.current = [];
@@ -162,7 +170,7 @@ export function ChatSocketProvider({
 
         if (token.trim().length === 0) {
           setTokenError(
-            "Não foi possível obter o token (POST /api/chat/dev-token ou NEXT_PUBLIC_WS_AUTH_TOKEN)."
+            "Não foi possível obter o token (inicie sessão, ou configure NEXT_PUBLIC_WS_AUTH_TOKEN / dev-token)."
           );
           setStatus("error");
           return;
@@ -184,6 +192,64 @@ export function ChatSocketProvider({
           socketRef.current = null;
           return;
         }
+
+        let wasAuthenticatedConnect = false;
+
+        const runAuthRecoveryAfterSocketFailure = async (): Promise<void> => {
+          if (socketAuthRecoveryInFlightRef.current) {
+            return;
+          }
+          socketAuthRecoveryInFlightRef.current = true;
+          try {
+            if (!isCurrentGeneration()) {
+              return;
+            }
+            const hasRefresh = Boolean(
+              useAuthStore.getState().refreshToken?.trim().length
+            );
+            s.disconnect();
+            if (!isCurrentGeneration()) {
+              return;
+            }
+            if (!hasRefresh) {
+              useAuthStore.getState().clearSession();
+              redirectToLoginIfNeeded();
+              setTokenError(
+                "Sessão expirada ou token inválido. Inicie sessão novamente."
+              );
+              setStatus("error");
+              return;
+            }
+            if (!isCurrentGeneration()) {
+              return;
+            }
+            const result = await recoverSessionWithRefresh();
+            if (!isCurrentGeneration()) {
+              return;
+            }
+            switch (result) {
+              case "refreshed":
+                setError(null);
+                setTokenError(null);
+                break;
+              case "network_error":
+                setError(
+                  "Sem ligação ao servidor. Verifique a rede e tente novamente."
+                );
+                setStatus("error");
+                break;
+              case "refresh_failed":
+              case "no_refresh_token":
+                useAuthStore.getState().clearSession();
+                redirectToLoginIfNeeded();
+                break;
+              default:
+                break;
+            }
+          } finally {
+            socketAuthRecoveryInFlightRef.current = false;
+          }
+        };
 
         const forwardOrQueueSession = (p: ChatSessionPayload): void => {
           const h = chatHandlersRef.current;
@@ -237,6 +303,7 @@ export function ChatSocketProvider({
         setSocket(s);
 
         const handleConnect = (): void => {
+          wasAuthenticatedConnect = true;
           setStatus("connected");
           setError(null);
         };
@@ -244,10 +311,31 @@ export function ChatSocketProvider({
         const handleConnectError = (err: Error): void => {
           setStatus("error");
           setError(err.message);
+          void runAuthRecoveryAfterSocketFailure();
         };
 
-        const handleDisconnect = (): void => {
+        const isAuthRelatedDisconnectReason = (reason: string): boolean => {
+          if (reason === "io server disconnect") {
+            return true;
+          }
+          const r = reason.toLowerCase();
+          return (
+            r.includes("jwt") ||
+            r.includes("unauthor") ||
+            r.includes("forbidden") ||
+            r.includes("expired")
+          );
+        };
+
+        const handleDisconnect = (reason: string): void => {
           setStatus("disconnected");
+          if (
+            wasAuthenticatedConnect &&
+            isAuthRelatedDisconnectReason(reason)
+          ) {
+            void runAuthRecoveryAfterSocketFailure();
+          }
+          wasAuthenticatedConnect = false;
         };
 
         s.on("connect", handleConnect);

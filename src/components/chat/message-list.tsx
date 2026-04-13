@@ -22,13 +22,19 @@ export function MessageList({
 }: MessageListProps): ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : undefined;
+  const showAwaitingFirstAssistantChunk =
+    lastMessage !== undefined &&
+    lastMessage.role === "user" &&
+    isStreaming;
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) {
       return;
     }
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages, showConnectionLoading]);
+  }, [messages, showConnectionLoading, isStreaming]);
 
   if (showConnectionLoading) {
     return (
@@ -60,21 +66,26 @@ export function MessageList({
           <p>Escreva abaixo para começar a conversa.</p>
         </div>
       ) : (
-        messages.map((message, index) => {
-          const isLast = index === messages.length - 1;
-          const showCursor =
-            message.role === "assistant" &&
-            message.status === "streaming" &&
-            isStreaming &&
-            isLast;
-          return (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              showStreamingCursor={showCursor}
-            />
-          );
-        })
+        <>
+          {messages.map((message, index) => {
+            const isLast = index === messages.length - 1;
+            const showCursor =
+              message.role === "assistant" &&
+              message.status === "streaming" &&
+              isStreaming &&
+              isLast;
+            return (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                showStreamingCursor={showCursor}
+              />
+            );
+          })}
+          {showAwaitingFirstAssistantChunk ? (
+            <ChatTypingIndicator variant="responding" />
+          ) : null}
+        </>
       )}
     </div>
   );

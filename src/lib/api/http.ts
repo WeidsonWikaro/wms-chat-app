@@ -26,7 +26,7 @@ function parseBodyMessage(text: string, status: number): string {
   return text;
 }
 
-function parseAxiosError(error: unknown): string {
+export function parseAxiosErrorMessage(error: unknown): string {
   if (!isAxiosError(error)) {
     return error instanceof Error ? error.message : "Something went wrong.";
   }
@@ -90,6 +90,6 @@ export async function fetchJson<T>(
     if (axios.isCancel(error)) {
       throw error;
     }
-    throw new Error(parseAxiosError(error));
+    throw new Error(parseAxiosErrorMessage(error));
   }
 }

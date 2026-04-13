@@ -94,7 +94,8 @@ sequenceDiagram
 
 | Arquivo | Função |
 |---------|--------|
-| `src/lib/socket/chat-protocol.ts` | Constantes dos eventos (`CHAT_EVENT_SEND`, …), interfaces dos payloads (`ChatSendPayload`, `ChatSessionPayload`, …), `ChatSocketHandlers`, helper `pendingAssistantMessageId()`. **É o contrato alinhado com o Nest.** |
+| `src/lib/socket/chat-protocol.ts` | Constantes dos eventos (`CHAT_EVENT_SEND`, …), interfaces dos payloads (`ChatSendPayload`, `ChatSessionPayload`, …), `ChatSocketHandlers`, helper opcional `pendingAssistantMessageId()`. **Contrato alinhado com o Nest.** |
+| `src/lib/chat/chat-stream-utils.ts` | `appendAssistantChunk` / `markAssistantComplete` — cada `chat:chunk` é um **delta**; concatenar por `assistantMessageId` até `chat:complete`. Não filtrar por `conversationId` (evita descartar todos os chunks se o ref não coincidir com o servidor). |
 
 ### Onde o socket nasce
 
@@ -106,7 +107,7 @@ sequenceDiagram
 
 | Arquivo | Função |
 |---------|--------|
-| `src/hooks/use-chat.ts` | Estado: mensagens, `conversationId`, streaming, erro. Handlers para `chat:session`, `chat:message_received`, `chat:chunk`, `chat:complete`, `chat:error`. Emite `chat:send`. |
+| `src/hooks/use-chat.ts` | Mensagens, `conversationId`, streaming, erro. `chat:chunk` via `appendAssistantChunk`, `chat:complete` via `markAssistantComplete`. Só aparece bolha do assistente após o 1.º chunk; antes disso, `MessageList` mostra `ChatTypingIndicator variant="responding"`. Emite `chat:send`. |
 | `src/types/chat.ts` | Tipo `ChatMessage` (inclui `sentAtIso`, etc.). |
 | `src/lib/chat/format-message-time.ts` | Formata hora para exibir abaixo do balão (`pt-BR`). |
 

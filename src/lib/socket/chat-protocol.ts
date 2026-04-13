@@ -44,6 +44,10 @@ export interface ChatMessageReceivedPayload {
 export interface ChatChunkPayload {
   readonly assistantMessageId: string;
   readonly conversationId: string;
+  /**
+   * Delta do modelo (pode ser sub-palavra). Concatenar em ordem até `chat:complete`
+   * para este `assistantMessageId`.
+   */
   readonly chunk: string;
   /** Mesmo valor para todos os chunks da mesma resposta do assistente. */
   readonly sentAt?: string;
